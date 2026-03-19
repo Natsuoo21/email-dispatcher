@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Settings from './pages/Settings';
 import Editor from './pages/Editor';
+import Recipients from './pages/Recipients';
 import './App.css';
 
 const PAGES = {
@@ -34,12 +35,13 @@ function App() {
       case 'settings':
         return <Settings showToast={showToast} />;
       case 'recipients':
+        return <Recipients showToast={showToast} />;
       case 'compose':
       case 'logs':
         return (
           <div className="empty-state">
             <h3>{PAGES[page].label}</h3>
-            <p>Coming in Phase {page === 'recipients' ? 4 : page === 'compose' ? 5 : 6}</p>
+            <p>Coming in Phase {page === 'compose' ? 5 : 6}</p>
           </div>
         );
       default:

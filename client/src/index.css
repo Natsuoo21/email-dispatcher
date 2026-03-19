@@ -140,3 +140,39 @@ body {
   animation: spin 0.6s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Dropzone */
+.dropzone {
+  border: 2px dashed var(--border); border-radius: 12px; padding: 60px 20px;
+  text-align: center; cursor: pointer; transition: all 0.2s;
+}
+.dropzone:hover { border-color: var(--accent); background: rgba(59,130,246,0.03); }
+.dropzone-active { border-color: var(--accent); background: rgba(59,130,246,0.06); }
+.dropzone-icon {
+  font-size: 36px; color: var(--text-muted); margin-bottom: 12px;
+  width: 64px; height: 64px; line-height: 64px;
+  border-radius: 50%; background: var(--bg-secondary); display: inline-block;
+}
+.dropzone h3 { font-size: 18px; color: var(--text-secondary); margin-bottom: 6px; }
+.dropzone p { font-size: 13px; color: var(--text-muted); }
+
+/* Data Table */
+.table-wrapper {
+  border: 1px solid var(--border); border-radius: var(--radius); overflow: auto;
+  max-height: calc(100vh - 320px);
+}
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table thead { position: sticky; top: 0; z-index: 1; }
+.data-table th {
+  background: var(--bg-secondary); padding: 10px 14px; text-align: left;
+  font-size: 12px; font-weight: 600; color: var(--text-secondary);
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.data-table td {
+  padding: 8px 14px; border-bottom: 1px solid rgba(51,65,85,0.5);
+  max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.data-table tr:hover { background: rgba(59,130,246,0.03); }
+.row-selected { }
+.row-dimmed { opacity: 0.4; }
+.data-table input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
