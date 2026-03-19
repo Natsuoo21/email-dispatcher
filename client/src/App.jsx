@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Settings from './pages/Settings';
+import Editor from './pages/Editor';
 import './App.css';
 
 const PAGES = {
@@ -11,7 +12,8 @@ const PAGES = {
 };
 
 function App() {
-  const [page, setPage] = useState('settings');
+  const [page, setPage] = useState('editor');
+  const [templateRefresh, setTemplateRefresh] = useState(0);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -27,16 +29,17 @@ function App() {
 
   function renderPage() {
     switch (page) {
+      case 'editor':
+        return <Editor showToast={showToast} onTemplateChange={() => setTemplateRefresh(r => r + 1)} />;
       case 'settings':
         return <Settings showToast={showToast} />;
-      case 'editor':
       case 'recipients':
       case 'compose':
       case 'logs':
         return (
           <div className="empty-state">
             <h3>{PAGES[page].label}</h3>
-            <p>Coming in Phase {page === 'editor' ? 3 : page === 'recipients' ? 4 : page === 'compose' ? 5 : 6}</p>
+            <p>Coming in Phase {page === 'recipients' ? 4 : page === 'compose' ? 5 : 6}</p>
           </div>
         );
       default:
