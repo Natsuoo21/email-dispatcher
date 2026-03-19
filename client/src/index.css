@@ -176,3 +176,62 @@ body {
 .row-selected { }
 .row-dimmed { opacity: 0.4; }
 .data-table input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
+
+/* Compose Steps */
+.compose-step {
+  display: flex; gap: 16px; margin-bottom: 24px;
+  padding: 20px; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.step-number {
+  width: 32px; height: 32px; border-radius: 50%; background: var(--accent);
+  color: white; font-weight: 700; font-size: 14px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.step-content { flex: 1; }
+.step-label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); }
+
+.var-map-row {
+  display: flex; gap: 10px; align-items: center; margin-bottom: 8px;
+}
+.var-name {
+  font-family: var(--font-mono); font-size: 13px; color: var(--accent);
+  background: rgba(59,130,246,0.1); padding: 4px 10px; border-radius: 4px;
+  white-space: nowrap; min-width: 120px;
+}
+
+/* Progress */
+.progress-bar-wrapper {
+  height: 12px; background: var(--bg-input); border-radius: 6px; overflow: hidden;
+  border: 1px solid var(--border);
+}
+.progress-bar {
+  height: 100%; background: var(--accent); border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.stat-box {
+  padding: 16px 24px; border-radius: var(--radius); text-align: center; flex: 1;
+}
+.stat-green { background: var(--green-bg); border: 1px solid rgba(16,185,129,0.2); }
+.stat-red { background: var(--red-bg); border: 1px solid rgba(239,68,68,0.2); }
+.stat-value { font-size: 32px; font-weight: 800; }
+.stat-green .stat-value { color: var(--green); }
+.stat-red .stat-value { color: var(--red); }
+.stat-label { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-top: 4px; }
+
+/* Confirm Grid */
+.confirm-grid { margin: 16px 0; }
+.confirm-row {
+  display: flex; gap: 12px; padding: 10px 0;
+  border-bottom: 1px solid rgba(51,65,85,0.3); font-size: 14px;
+}
+.confirm-label { width: 100px; color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; flex-shrink: 0; }
+
+/* Select styling */
+select.form-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+  padding-right: 32px;
+}
