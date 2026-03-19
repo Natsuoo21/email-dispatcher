@@ -1,0 +1,17 @@
+{
+  "name": "email-dispatcher",
+  "version": "1.0.0",
+  "description": "HTML Email Sender with Own SMTP — send beautiful, personalized emails to multiple recipients",
+  "private": true,
+  "scripts": {
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "dev": "concurrently \"npm run server:dev\" \"npm run client\"",
+    "server": "node server/index.js",
+    "server:dev": "nodemon server/index.js",
+    "client": "npm --prefix client run dev",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
