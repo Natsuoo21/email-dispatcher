@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { dispatchApi, smtpApi } from '../api';
 
 const STATUS_COLORS = {
@@ -42,7 +42,7 @@ export default function Logs({ showToast }) {
 
   useEffect(() => {
     loadDispatches();
-    smtpApi.list().then(setAccounts).catch(() => {});
+    smtpApi.list().then(setAccounts).catch(err => showToast(err.message, 'error'));
   }, []);
 
   async function loadDispatches(filters) {
@@ -228,8 +228,8 @@ export default function Logs({ showToast }) {
               </thead>
               <tbody>
                 {history.map(d => (
-                  <>
-                    <tr key={d.id} onClick={() => handleExpand(d.id)} style={{ cursor: 'pointer' }}>
+                  <Fragment key={d.id}>
+                    <tr onClick={() => handleExpand(d.id)} style={{ cursor: 'pointer' }}>
                       <td style={{ fontSize: 10, color: 'var(--text-muted)' }}>{expandedId === d.id ? '\u25BC' : '\u25B6'}</td>
                       <td style={{ fontWeight: 500 }}>{d.name}</td>
                       <td>{d.template_name || '-'}</td>
@@ -282,7 +282,7 @@ export default function Logs({ showToast }) {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>

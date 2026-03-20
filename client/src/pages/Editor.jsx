@@ -212,7 +212,7 @@ export default function Editor({ showToast, onTemplateChange }) {
               srcDoc={html}
               title="Email Preview"
               style={{ width: 600, maxWidth: '100%', height: '100%', border: 'none', background: 'white', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
-              sandbox="allow-same-origin"
+              sandbox=""
             />
           </div>
         </div>

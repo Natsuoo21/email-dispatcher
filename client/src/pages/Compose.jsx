@@ -58,9 +58,19 @@ export default function Compose({ showToast }) {
 
   // Load all data sources on mount
   useEffect(() => {
-    templateApi.list().then(setTemplates).catch(() => {});
-    recipientApi.list().then(setLists).catch(() => {});
-    smtpApi.list().then(setAccounts).catch(() => {});
+    templateApi.list().then(setTemplates).catch(err => showToast(err.message, 'error'));
+    recipientApi.list().then(setLists).catch(err => showToast(err.message, 'error'));
+    smtpApi.list().then(setAccounts).catch(err => showToast(err.message, 'error'));
+  }, []);
+
+  // Cleanup EventSource on unmount
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+    };
   }, []);
 
   // Auto-select default SMTP account
@@ -127,11 +137,11 @@ export default function Compose({ showToast }) {
     ? renderPreview(selectedTemplate.html_content, subject, previewRecipient, variableMap, defaults)
     : null;
 
-  // Validation
-  const canSend = selectedTemplate && recipients.length > 0 && selectedAccount && dispatchName.trim() && subject.trim();
-
   // Find email column
   const emailCol = columns.find(c => c.toLowerCase() === 'email');
+
+  // Validation
+  const canSend = selectedTemplate && recipients.length > 0 && selectedAccount && dispatchName.trim() && subject.trim() && (emailCol || !columns.length);
 
   // Start dispatch
   async function handleSend() {
@@ -311,6 +321,11 @@ export default function Compose({ showToast }) {
               {recipients.length} recipients loaded — columns: {columns.join(', ')}
             </div>
           )}
+          {columns.length > 0 && !emailCol && (
+            <div className="form-hint" style={{ color: 'var(--red)' }}>
+              No "email" column found in this list. An "email" column is required.
+            </div>
+          )}
         </div>
       </div>
 
@@ -429,7 +444,7 @@ export default function Compose({ showToast }) {
                     srcDoc={preview.html}
                     title="Preview"
                     style={{ width: '100%', height: 300, border: 'none', background: 'white' }}
-                    sandbox="allow-same-origin"
+                    sandbox=""
                   />
                 </div>
               </>
@@ -484,7 +499,7 @@ export default function Compose({ showToast }) {
           </button>
           {!canSend && (
             <span style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: '44px' }}>
-              {!selectedTemplate ? 'Select a template' : !recipients.length ? 'Select recipients' : !selectedAccount ? 'Select SMTP account' : !dispatchName.trim() ? 'Enter dispatch name' : 'Enter subject line'}
+              {!selectedTemplate ? 'Select a template' : !recipients.length ? 'Select recipients' : (columns.length > 0 && !emailCol) ? 'List needs an "email" column' : !selectedAccount ? 'Select SMTP account' : !dispatchName.trim() ? 'Enter dispatch name' : 'Enter subject line'}
             </span>
           )}
         </div>

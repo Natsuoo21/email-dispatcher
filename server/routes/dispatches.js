@@ -7,6 +7,11 @@ const router = express.Router();
 // In-memory map of active dispatches for SSE
 const activeDispatches = new Map();
 
+// Sanitize error messages to avoid leaking credentials
+function sanitizeError(msg) {
+  return (msg || 'Unknown error').replace(/:[^@\s]+@/g, ':***@');
+}
+
 // GET /api/dispatches — List dispatch history (with optional filters)
 router.get('/', (req, res) => {
   try {
@@ -22,7 +27,7 @@ router.get('/', (req, res) => {
 
     if (status) { conditions.push('d.status = ?'); params.push(status); }
     if (smtp_account_id) { conditions.push('d.smtp_account_id = ?'); params.push(smtp_account_id); }
-    if (search) { conditions.push('(d.name LIKE ? OR t.name LIKE ?)'); params.push(`%${search}%`, `%${search}%`); }
+    if (search && search.length <= 200) { conditions.push('(d.name LIKE ? OR t.name LIKE ?)'); params.push(`%${search}%`, `%${search}%`); }
     if (from) { conditions.push('d.created_at >= ?'); params.push(from); }
     if (to) { conditions.push('d.created_at <= ?'); params.push(to); }
 
@@ -153,7 +158,7 @@ function startDispatch(dispatchId, template, account, variableMapStr, defaultsSt
           .run(dispatchId);
       } catch (err) {
         db.prepare("UPDATE dispatch_logs SET status = 'failed', error_message = ? WHERE id = ?")
-          .run(err.message, log.id);
+          .run(sanitizeError(err.message), log.id);
         db.prepare('UPDATE dispatches SET failed_count = failed_count + 1 WHERE id = ?')
           .run(dispatchId);
       }
@@ -192,8 +197,16 @@ function startDispatch(dispatchId, template, account, variableMapStr, defaultsSt
 
     activeDispatches.delete(dispatchId);
   })().catch(err => {
-    console.error(`Dispatch ${dispatchId} error:`, err);
-    db.prepare("UPDATE dispatches SET status = 'failed' WHERE id = ?").run(dispatchId);
+    console.error(`Dispatch ${dispatchId} error:`, err.message);
+    db.prepare("UPDATE dispatches SET status = 'failed', finished_at = datetime('now') WHERE id = ?").run(dispatchId);
+
+    // Close any remaining SSE clients
+    for (const client of sseClients) {
+      if (!client.writableEnded) {
+        client.write(`data: ${JSON.stringify({ status: 'failed' })}\n\n`);
+        client.end();
+      }
+    }
     activeDispatches.delete(dispatchId);
   });
 }
