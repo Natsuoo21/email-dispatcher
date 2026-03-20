@@ -91,4 +91,8 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_logs_email    ON dispatch_logs(recipient_email);
 `);
 
+// Migrations — add test tracking columns (idempotent)
+try { db.exec("ALTER TABLE smtp_accounts ADD COLUMN last_test_at TEXT"); } catch {}
+try { db.exec("ALTER TABLE smtp_accounts ADD COLUMN last_test_result TEXT"); } catch {}
+
 module.exports = db;

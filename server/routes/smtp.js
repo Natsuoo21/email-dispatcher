@@ -7,7 +7,7 @@ const { createTransporter } = require('../mailer');
 // GET /api/smtp-accounts — List all accounts (no credentials)
 router.get('/', (req, res) => {
   const accounts = db.prepare(
-    'SELECT id, name, email, host, port, env_key, is_default, created_at FROM smtp_accounts ORDER BY created_at DESC'
+    'SELECT id, name, email, host, port, env_key, is_default, last_test_at, last_test_result, created_at FROM smtp_accounts ORDER BY created_at DESC'
   ).all();
   res.json(accounts);
 });
@@ -91,8 +91,10 @@ router.post('/:id/test', async (req, res) => {
       `,
     });
 
+    db.prepare("UPDATE smtp_accounts SET last_test_at = datetime('now'), last_test_result = 'success' WHERE id = ?").run(id);
     res.json({ success: true, message: 'Test email sent successfully. Check your inbox.' });
   } catch (err) {
+    db.prepare("UPDATE smtp_accounts SET last_test_at = datetime('now'), last_test_result = 'failed' WHERE id = ?").run(id);
     res.status(500).json({ success: false, error: err.message });
   }
 });

@@ -418,6 +418,13 @@ export default function Compose({ showToast }) {
           <div className="step-content">
             <label className="step-label">Preview with Real Data</label>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+              <button
+                className="btn btn-sm"
+                disabled={previewIdx === 0}
+                onClick={() => setPreviewIdx(i => i - 1)}
+              >
+                &lt; Prev
+              </button>
               <select
                 className="form-input"
                 style={{ width: 300 }}
@@ -430,6 +437,13 @@ export default function Compose({ showToast }) {
                   </option>
                 ))}
               </select>
+              <button
+                className="btn btn-sm"
+                disabled={previewIdx >= Math.min(recipients.length, 20) - 1}
+                onClick={() => setPreviewIdx(i => i + 1)}
+              >
+                Next &gt;
+              </button>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 (showing first 20)
               </span>

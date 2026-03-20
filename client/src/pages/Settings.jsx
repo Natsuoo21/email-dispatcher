@@ -6,6 +6,24 @@ const PRESETS = {
   outlook: { host: 'smtp.office365.com', port: 587 },
 };
 
+function detectProvider(host) {
+  const h = (host || '').toLowerCase();
+  if (h.includes('gmail')) return { name: 'Gmail', limit: '~500/day', color: '#ea4335' };
+  if (h.includes('office365') || h.includes('outlook')) return { name: 'Outlook', limit: '~300/day', color: '#0078d4' };
+  return { name: 'Custom', limit: 'Varies', color: 'var(--text-muted)' };
+}
+
+function timeAgo(isoStr) {
+  if (!isoStr) return null;
+  const diff = Date.now() - new Date(isoStr + 'Z').getTime();
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return `${Math.floor(diff / 86400000)}d ago`;
+}
+
+const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+
 export default function Settings({ showToast }) {
   const [accounts, setAccounts] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -54,6 +72,7 @@ export default function Settings({ showToast }) {
       showToast(err.message, 'error');
     } finally {
       setTesting(null);
+      loadAccounts();
     }
   }
 
@@ -101,40 +120,62 @@ export default function Settings({ showToast }) {
             </button>
           </div>
 
-          {accounts.map(acc => (
-            <div key={acc.id} className="card">
-              <div className="card-header">
-                <div>
-                  <div className="card-title">
-                    {acc.name}
-                    {acc.is_default ? <span className="badge badge-default" style={{ marginLeft: 8 }}>Default</span> : null}
+          {accounts.map(acc => {
+            const provider = detectProvider(acc.host);
+            const ago = timeAgo(acc.last_test_at);
+            const isStale = acc.last_test_at && (Date.now() - new Date(acc.last_test_at + 'Z').getTime()) > SEVEN_DAYS;
+
+            return (
+              <div key={acc.id} className="card">
+                <div className="card-header">
+                  <div>
+                    <div className="card-title">
+                      {acc.name}
+                      <span className="provider-badge" style={{ background: provider.color }}>{provider.name}</span>
+                      {acc.is_default ? <span className="badge badge-default" style={{ marginLeft: 8 }}>Default</span> : null}
+                    </div>
+                    <div className="card-subtitle">{acc.email}</div>
                   </div>
-                  <div className="card-subtitle">{acc.email}</div>
-                </div>
-                <div className="card-actions">
-                  <button
-                    className="btn btn-sm"
-                    onClick={() => handleTest(acc.id)}
-                    disabled={testing === acc.id}
-                  >
-                    {testing === acc.id ? <><span className="spinner"></span> Testing...</> : 'Test Connection'}
-                  </button>
-                  {!acc.is_default && (
-                    <button className="btn btn-sm" onClick={() => handleSetDefault(acc.id)}>
-                      Set Default
+                  <div className="card-actions">
+                    <button
+                      className="btn btn-sm"
+                      onClick={() => handleTest(acc.id)}
+                      disabled={testing === acc.id}
+                    >
+                      {testing === acc.id ? <><span className="spinner"></span> Testing...</> : 'Test Connection'}
                     </button>
+                    {!acc.is_default && (
+                      <button className="btn btn-sm" onClick={() => handleSetDefault(acc.id)}>
+                        Set Default
+                      </button>
+                    )}
+                    <button className="btn btn-sm btn-danger" onClick={() => handleDelete(acc.id, acc.name)}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+                <div className="card-details">
+                  <span>Host: <code>{acc.host}:{acc.port}</code></span>
+                  <span>Env Key: <code>{acc.env_key}</code></span>
+                  <span>Limit: <code>{provider.limit}</code></span>
+                </div>
+                <div className="health-line">
+                  {!acc.last_test_result && (
+                    <span style={{ color: 'var(--text-muted)' }}>Not tested yet</span>
                   )}
-                  <button className="btn btn-sm btn-danger" onClick={() => handleDelete(acc.id, acc.name)}>
-                    Delete
-                  </button>
+                  {acc.last_test_result === 'success' && !isStale && (
+                    <span style={{ color: 'var(--green)' }}>Tested: {ago}</span>
+                  )}
+                  {acc.last_test_result === 'failed' && !isStale && (
+                    <span style={{ color: 'var(--red)' }}>Test failed: {ago}</span>
+                  )}
+                  {acc.last_test_result && isStale && (
+                    <span style={{ color: 'var(--amber)' }}>Stale — retest recommended ({ago})</span>
+                  )}
                 </div>
               </div>
-              <div className="card-details">
-                <span>Host: <code>{acc.host}:{acc.port}</code></span>
-                <span>Env Key: <code>{acc.env_key}</code></span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </>
       )}
 
