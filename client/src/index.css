@@ -235,3 +235,34 @@ select.form-input {
   background-repeat: no-repeat; background-position: right 12px center;
   padding-right: 32px;
 }
+
+/* Datetime input dark theme */
+input[type="datetime-local"].form-input,
+input[type="date"].form-input {
+  color-scheme: dark;
+}
+
+/* Nested table inside expanded row */
+.data-table .data-table {
+  margin: 0;
+}
+.data-table .data-table th {
+  background: rgba(15, 23, 42, 0.6);
+  font-size: 11px;
+}
+.data-table .data-table td {
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+/* Info banner */
+.info-banner {
+  background: var(--amber-bg);
+  color: var(--amber);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 24px;
+}

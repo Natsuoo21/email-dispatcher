@@ -3,6 +3,7 @@ import Settings from './pages/Settings';
 import Editor from './pages/Editor';
 import Recipients from './pages/Recipients';
 import Compose from './pages/Compose';
+import Logs from './pages/Logs';
 import './App.css';
 
 const PAGES = {
@@ -40,12 +41,7 @@ function App() {
       case 'compose':
         return <Compose showToast={showToast} />;
       case 'logs':
-        return (
-          <div className="empty-state">
-            <h3>{PAGES[page].label}</h3>
-            <p>Coming in Phase 6</p>
-          </div>
-        );
+        return <Logs showToast={showToast} />;
       default:
         return null;
     }

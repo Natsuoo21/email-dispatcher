@@ -7,16 +7,29 @@ const router = express.Router();
 // In-memory map of active dispatches for SSE
 const activeDispatches = new Map();
 
-// GET /api/dispatches — List dispatch history
+// GET /api/dispatches — List dispatch history (with optional filters)
 router.get('/', (req, res) => {
   try {
-    const dispatches = db.prepare(`
+    const { status, smtp_account_id, search, from, to } = req.query;
+    let sql = `
       SELECT d.*, s.name as smtp_name, s.email as smtp_email, t.name as template_name
       FROM dispatches d
       LEFT JOIN smtp_accounts s ON d.smtp_account_id = s.id
       LEFT JOIN templates t ON d.template_id = t.id
-      ORDER BY d.created_at DESC
-    `).all();
+    `;
+    const conditions = [];
+    const params = [];
+
+    if (status) { conditions.push('d.status = ?'); params.push(status); }
+    if (smtp_account_id) { conditions.push('d.smtp_account_id = ?'); params.push(smtp_account_id); }
+    if (search) { conditions.push('(d.name LIKE ? OR t.name LIKE ?)'); params.push(`%${search}%`, `%${search}%`); }
+    if (from) { conditions.push('d.created_at >= ?'); params.push(from); }
+    if (to) { conditions.push('d.created_at <= ?'); params.push(to); }
+
+    if (conditions.length > 0) sql += ' WHERE ' + conditions.join(' AND ');
+    sql += ' ORDER BY d.created_at DESC';
+
+    const dispatches = db.prepare(sql).all(...params);
     res.json(dispatches);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -289,6 +302,56 @@ router.post('/:id/retry', (req, res) => {
   }
 });
 
+// POST /api/dispatches/:id/cancel — Soft-cancel a scheduled dispatch
+router.post('/:id/cancel', (req, res) => {
+  try {
+    const dispatch = db.prepare('SELECT * FROM dispatches WHERE id = ?').get(req.params.id);
+    if (!dispatch) return res.status(404).json({ error: 'Dispatch not found' });
+    if (dispatch.status !== 'scheduled') {
+      return res.status(409).json({ error: 'Only scheduled dispatches can be cancelled' });
+    }
+
+    db.prepare("UPDATE dispatches SET status = 'cancelled', finished_at = datetime('now') WHERE id = ?")
+      .run(req.params.id);
+    res.json({ message: 'Scheduled dispatch cancelled' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/dispatches/:id/logs/export — CSV export of dispatch logs
+router.get('/:id/logs/export', (req, res) => {
+  try {
+    const dispatch = db.prepare('SELECT * FROM dispatches WHERE id = ?').get(req.params.id);
+    if (!dispatch) return res.status(404).json({ error: 'Dispatch not found' });
+
+    const logs = db.prepare(
+      'SELECT recipient_email, status, error_message, sent_at, created_at FROM dispatch_logs WHERE dispatch_id = ? ORDER BY created_at'
+    ).all(req.params.id);
+
+    function csvEscape(val) {
+      if (val == null) return '';
+      const s = String(val);
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }
+
+    const header = 'Email,Status,Error,Sent At,Created At';
+    const rows = logs.map(l =>
+      [l.recipient_email, l.status, l.error_message, l.sent_at, l.created_at].map(csvEscape).join(',')
+    );
+
+    const csv = [header, ...rows].join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="dispatch-${req.params.id}-logs.csv"`);
+    res.send(csv);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DELETE /api/dispatches/:id — Cancel a scheduled dispatch
 router.delete('/:id', (req, res) => {
   try {
@@ -307,4 +370,6 @@ router.delete('/:id', (req, res) => {
   }
 });
 
+router.startDispatch = startDispatch;
+router.activeDispatches = activeDispatches;
 module.exports = router;

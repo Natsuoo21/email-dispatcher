@@ -35,6 +35,9 @@ app.use('/api/recipient-lists', require('./routes/recipients'));
 app.use('/api/smtp-accounts', require('./routes/smtp'));
 app.use('/api/dispatches', require('./routes/dispatches'));
 
+const { initScheduler } = require('./scheduler');
+initScheduler();
+
 app.listen(PORT, () => {
   console.log(`[Email Dispatcher] Server running on http://localhost:${PORT}`);
   console.log(`[Email Dispatcher] Database: OK (5 tables)`);

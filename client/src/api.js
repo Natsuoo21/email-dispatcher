@@ -42,11 +42,20 @@ export const recipientApi = {
 
 // Dispatches
 export const dispatchApi = {
-  list: () => request('/dispatches'),
+  list: (filters = {}) => {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(filters)) {
+      if (v) params.append(k, v);
+    }
+    const qs = params.toString();
+    return request(`/dispatches${qs ? '?' + qs : ''}`);
+  },
   create: (dispatch) => request('/dispatches', { method: 'POST', body: JSON.stringify(dispatch) }),
   logs: (id) => request(`/dispatches/${id}/logs`),
   retry: (id) => request(`/dispatches/${id}/retry`, { method: 'POST' }),
-  cancel: (id) => request(`/dispatches/${id}`, { method: 'DELETE' }),
+  remove: (id) => request(`/dispatches/${id}`, { method: 'DELETE' }),
+  cancelScheduled: (id) => request(`/dispatches/${id}/cancel`, { method: 'POST' }),
+  exportLogsUrl: (id) => `/api/dispatches/${id}/logs/export`,
 };
 
 // Health

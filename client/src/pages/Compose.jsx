@@ -42,6 +42,10 @@ export default function Compose({ showToast }) {
   const [dispatchName, setDispatchName] = useState('');
   const [subject, setSubject] = useState('');
 
+  // Scheduling
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState('');
+
   // Preview
   const [previewIdx, setPreviewIdx] = useState(0);
 
@@ -143,7 +147,7 @@ export default function Compose({ showToast }) {
         email: r[emailCol] || r.email,
       }));
 
-      const dispatch = await dispatchApi.create({
+      const payload = {
         name: dispatchName.trim(),
         template_id: selectedTemplate.id,
         smtp_account_id: selectedAccount.id,
@@ -151,7 +155,19 @@ export default function Compose({ showToast }) {
         variable_map: variableMap,
         defaults,
         recipients: recipientPayload,
-      });
+      };
+      if (scheduleMode && scheduledAt) {
+        payload.scheduled_at = new Date(scheduledAt).toISOString();
+      }
+
+      const dispatch = await dispatchApi.create(payload);
+
+      // If scheduled, show toast and reset — no SSE needed
+      if (dispatch.status === 'scheduled') {
+        showToast(`Dispatch scheduled for ${new Date(scheduledAt).toLocaleString()}`);
+        handleReset();
+        return;
+      }
 
       // Connect to SSE for progress
       const es = new EventSource(`/api/dispatches/${dispatch.id}/progress`);
@@ -248,6 +264,10 @@ export default function Compose({ showToast }) {
       <div className="page-header">
         <h2>Compose</h2>
         <p>Assemble your email dispatch step by step</p>
+      </div>
+
+      <div className="info-banner">
+        Emails are sent at ~1/sec to avoid rate limits. Gmail: 500/day, Outlook: 300/day.
       </div>
 
       {/* Step 1: Template */}
@@ -418,21 +438,56 @@ export default function Compose({ showToast }) {
         </div>
       )}
 
-      {/* Send Button */}
-      <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
-        <button
-          className="btn btn-primary"
-          disabled={!canSend}
-          onClick={() => setShowConfirm(true)}
-          style={{ padding: '12px 32px', fontSize: 15 }}
-        >
-          Send Now
-        </button>
-        {!canSend && (
-          <span style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: '44px' }}>
-            {!selectedTemplate ? 'Select a template' : !recipients.length ? 'Select recipients' : !selectedAccount ? 'Select SMTP account' : !dispatchName.trim() ? 'Enter dispatch name' : 'Enter subject line'}
-          </span>
+      {/* Schedule Toggle & Send Button */}
+      <div style={{ marginTop: 24 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <button
+            className={`btn ${!scheduleMode ? 'btn-primary' : ''}`}
+            onClick={() => { setScheduleMode(false); setScheduledAt(''); }}
+            style={{ padding: '8px 20px' }}
+          >
+            Send Now
+          </button>
+          <button
+            className={`btn ${scheduleMode ? 'btn-primary' : ''}`}
+            onClick={() => setScheduleMode(true)}
+            style={{ padding: '8px 20px' }}
+          >
+            Schedule
+          </button>
+        </div>
+
+        {scheduleMode && (
+          <div style={{ marginBottom: 16 }}>
+            <input
+              type="datetime-local"
+              className="form-input"
+              style={{ maxWidth: 300 }}
+              value={scheduledAt}
+              min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+              onChange={e => setScheduledAt(e.target.value)}
+            />
+            {!scheduledAt && (
+              <div className="form-hint">Pick a date and time to send</div>
+            )}
+          </div>
         )}
+
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button
+            className="btn btn-primary"
+            disabled={!canSend || (scheduleMode && !scheduledAt)}
+            onClick={() => setShowConfirm(true)}
+            style={{ padding: '12px 32px', fontSize: 15 }}
+          >
+            {scheduleMode ? 'Schedule Dispatch' : 'Send Now'}
+          </button>
+          {!canSend && (
+            <span style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: '44px' }}>
+              {!selectedTemplate ? 'Select a template' : !recipients.length ? 'Select recipients' : !selectedAccount ? 'Select SMTP account' : !dispatchName.trim() ? 'Enter dispatch name' : 'Enter subject line'}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Confirmation Modal */}
@@ -473,15 +528,23 @@ export default function Compose({ showToast }) {
                   </span>
                 </div>
               )}
-              <div className="confirm-row">
-                <span className="confirm-label">Est. Time</span>
-                <span>~{Math.ceil(recipients.length / 60)} min ({recipients.length}s at 1/sec)</span>
-              </div>
+              {scheduleMode && scheduledAt && (
+                <div className="confirm-row">
+                  <span className="confirm-label">Scheduled</span>
+                  <span>{new Date(scheduledAt).toLocaleString()}</span>
+                </div>
+              )}
+              {!scheduleMode && (
+                <div className="confirm-row">
+                  <span className="confirm-label">Est. Time</span>
+                  <span>~{Math.ceil(recipients.length / 60)} min ({recipients.length}s at 1/sec)</span>
+                </div>
+              )}
             </div>
             <div className="modal-actions">
               <button className="btn" onClick={() => setShowConfirm(false)}>Cancel</button>
               <button className="btn btn-primary" onClick={handleSend} disabled={sending}>
-                {sending ? 'Starting...' : `Send ${recipients.length} Emails`}
+                {sending ? 'Starting...' : scheduleMode ? `Schedule ${recipients.length} Emails` : `Send ${recipients.length} Emails`}
               </button>
             </div>
           </div>
