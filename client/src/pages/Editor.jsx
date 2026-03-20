@@ -154,9 +154,13 @@ export default function Editor({ showToast, onTemplateChange }) {
         <input
           className="form-input"
           placeholder='e.g., "News from {{company}} in March"'
+          title="Use {{variableName}} to insert personalized data per recipient"
           value={subject}
           onChange={e => setSubject(e.target.value)}
         />
+        <div className="form-hint">
+          Use <code>{'{{variableName}}'}</code> to insert personalized data. Variables must match your CSV/XLSX column names.
+        </div>
         {subject && detectVariables(subject).length > 0 && (
           <div className="form-hint">
             Variables in subject: {detectVariables(subject).map(v => (
@@ -177,7 +181,7 @@ export default function Editor({ showToast, onTemplateChange }) {
       )}
 
       {/* Split pane: Editor + Preview */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, height: 'calc(100vh - 300px)', minHeight: 400 }}>
+      <div className="editor-split" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, height: 'calc(100vh - 300px)', minHeight: 400 }}>
         {/* Monaco Editor */}
         <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
           <div style={{ padding: '8px 12px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text-muted)' }}>

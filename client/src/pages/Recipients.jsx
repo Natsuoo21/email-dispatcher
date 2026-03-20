@@ -229,6 +229,9 @@ export default function Recipients({ showToast, onListChange }) {
           <div className="dropzone-icon">+</div>
           <h3>Drop your file here</h3>
           <p>CSV, TSV, or XLSX — must contain an "email" column</p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+            Additional columns (name, company, etc.) can be used as <code style={{ fontSize: 11 }}>{'{{variables}}'}</code> in your template.
+          </p>
           <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
             Browse Files
           </button>

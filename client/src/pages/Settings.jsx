@@ -206,12 +206,16 @@ export default function Settings({ showToast }) {
                 <div className="form-group">
                   <label>SMTP Host</label>
                   <input className="form-input" placeholder="smtp.gmail.com"
+                    title="SMTP server hostname. Use preset buttons above to auto-fill."
                     value={form.host} onChange={e => setForm(f => ({ ...f, host: e.target.value }))} required />
+                  <div className="form-hint">Use the preset buttons above to auto-fill Gmail or Outlook settings.</div>
                 </div>
                 <div className="form-group">
                   <label>Port</label>
                   <input className="form-input" type="number" placeholder="587"
+                    title="587 for TLS (recommended), 465 for SSL"
                     value={form.port} onChange={e => setForm(f => ({ ...f, port: parseInt(e.target.value) || 587 }))} required />
+                  <div className="form-hint">587 for TLS (recommended) or 465 for SSL.</div>
                 </div>
               </div>
 
@@ -221,6 +225,9 @@ export default function Settings({ showToast }) {
                   value={form.env_key} onChange={e => setForm(f => ({ ...f, env_key: e.target.value }))} required />
                 <div className="form-hint">
                   This key must exist in your <code>.env</code> file with the password as its value.
+                  For Gmail, use an <strong>App Password</strong> (not your regular password) — generate one at{' '}
+                  <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer"
+                    style={{ color: 'var(--accent)' }}>myaccount.google.com/apppasswords</a>.
                 </div>
               </div>
 
