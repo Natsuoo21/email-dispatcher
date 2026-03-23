@@ -4,6 +4,10 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 const { createTransporter } = require('../mailer');
 
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 // GET /api/smtp-accounts — List all accounts (no credentials)
 router.get('/', (req, res) => {
   const accounts = db.prepare(
@@ -18,6 +22,21 @@ router.post('/', (req, res) => {
 
   if (!name || !email || !host || !port || !env_key) {
     return res.status(400).json({ error: 'All fields are required: name, email, host, port, env_key' });
+  }
+
+  // Validate email format
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Invalid email format' });
+  }
+
+  // Validate port range
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    return res.status(400).json({ error: 'Port must be an integer between 1 and 65535' });
+  }
+
+  // Validate env_key pattern
+  if (!/^SMTP_[\w]+$/.test(env_key)) {
+    return res.status(400).json({ error: 'env_key must match pattern SMTP_* (e.g., SMTP_GMAIL_PASS)' });
   }
 
   // Check env_key exists in environment
@@ -56,8 +75,10 @@ router.put('/:id/default', (req, res) => {
     return res.status(404).json({ error: 'Account not found' });
   }
 
-  db.prepare('UPDATE smtp_accounts SET is_default = 0').run();
-  db.prepare('UPDATE smtp_accounts SET is_default = 1 WHERE id = ?').run(id);
+  db.transaction(() => {
+    db.prepare('UPDATE smtp_accounts SET is_default = 0').run();
+    db.prepare('UPDATE smtp_accounts SET is_default = 1 WHERE id = ?').run(id);
+  })();
 
   res.json({ message: 'Default account updated' });
 });
@@ -81,9 +102,9 @@ router.post('/:id/test', async (req, res) => {
           <h2 style="color: #3b82f6;">Email Dispatcher — Test Successful!</h2>
           <p>If you're reading this, your SMTP configuration is working correctly.</p>
           <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
-            <tr><td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Account</td><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>${account.name}</strong></td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Email</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${account.email}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Host</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${account.host}:${account.port}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Account</td><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>${escapeHtml(account.name)}</strong></td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Email</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${escapeHtml(account.email)}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Host</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${escapeHtml(account.host)}:${account.port}</td></tr>
             <tr><td style="padding: 8px; color: #666;">Time</td><td style="padding: 8px;">${new Date().toISOString()}</td></tr>
           </table>
           <p style="margin-top: 24px; color: #999; font-size: 12px;">Sent by Email Dispatcher</p>

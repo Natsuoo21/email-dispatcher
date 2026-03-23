@@ -25,6 +25,10 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'List must have at least one recipient' });
     }
 
+    if (rows.length > 50000) {
+      return res.status(400).json({ error: 'Recipient list too large. Maximum 50,000 rows.' });
+    }
+
     const id = uuidv4();
 
     const insertList = db.prepare(

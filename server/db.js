@@ -77,7 +77,7 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS dispatch_logs (
     id               TEXT PRIMARY KEY,
-    dispatch_id      TEXT NOT NULL REFERENCES dispatches(id),
+    dispatch_id      TEXT NOT NULL REFERENCES dispatches(id) ON DELETE CASCADE,
     recipient_email  TEXT NOT NULL,
     recipient_data   TEXT NOT NULL,
     status           TEXT NOT NULL DEFAULT 'pending',
@@ -91,8 +91,20 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_logs_email    ON dispatch_logs(recipient_email);
 `);
 
-// Migrations — add test tracking columns (idempotent)
-try { db.exec("ALTER TABLE smtp_accounts ADD COLUMN last_test_at TEXT"); } catch {}
-try { db.exec("ALTER TABLE smtp_accounts ADD COLUMN last_test_result TEXT"); } catch {}
+// Migrations — idempotent column additions
+function safeAddColumn(table, column, type) {
+  try {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+  } catch (err) {
+    if (!err.message.includes('duplicate column name')) throw err;
+  }
+}
+
+safeAddColumn('smtp_accounts', 'last_test_at', 'TEXT');
+safeAddColumn('smtp_accounts', 'last_test_result', 'TEXT');
+safeAddColumn('dispatches', 'defaults', "TEXT NOT NULL DEFAULT '{}'");
+
+// Add index for scheduler query performance
+db.exec('CREATE INDEX IF NOT EXISTS idx_dispatches_scheduled ON dispatches(status, scheduled_at)');
 
 module.exports = db;

@@ -8,7 +8,7 @@ function initScheduler() {
     try {
       const now = new Date().toISOString();
       const due = db.prepare(
-        "SELECT * FROM dispatches WHERE status = 'scheduled' AND scheduled_at <= ?"
+        "SELECT id, name, template_id, smtp_account_id, variable_map, defaults FROM dispatches WHERE status = 'scheduled' AND scheduled_at <= ?"
       ).all(now);
 
       for (const dispatch of due) {
@@ -30,7 +30,7 @@ function initScheduler() {
         }
 
         console.log(`[Scheduler] Firing scheduled dispatch: ${dispatch.name} (${dispatch.id})`);
-        dispatchRouter.startDispatch(dispatch.id, template, account, dispatch.variable_map, '{}');
+        dispatchRouter.startDispatch(dispatch.id, template, account, dispatch.variable_map, dispatch.defaults || '{}');
       }
     } catch (err) {
       console.error('[Scheduler] Error:', err.message);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Settings from './pages/Settings';
 import Editor from './pages/Editor';
 import Recipients from './pages/Recipients';
@@ -16,7 +16,6 @@ const PAGES = {
 
 function App() {
   const [page, setPage] = useState('editor');
-  const [templateRefresh, setTemplateRefresh] = useState(0);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -26,14 +25,14 @@ function App() {
     }
   }, [toast]);
 
-  function showToast(message, type = 'success') {
+  const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type });
-  }
+  }, []);
 
   function renderPage() {
     switch (page) {
       case 'editor':
-        return <Editor showToast={showToast} onTemplateChange={() => setTemplateRefresh(r => r + 1)} />;
+        return <Editor showToast={showToast} />;
       case 'settings':
         return <Settings showToast={showToast} />;
       case 'recipients':

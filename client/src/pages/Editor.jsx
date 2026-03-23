@@ -27,7 +27,7 @@ function detectVariables(html) {
   return [...new Set(matches.map(m => m.slice(2, -2)))];
 }
 
-export default function Editor({ showToast, onTemplateChange }) {
+export default function Editor({ showToast }) {
   const [html, setHtml] = useState(DEFAULT_HTML);
   const [subject, setSubject] = useState('');
   const [variables, setVariables] = useState(() => detectVariables(DEFAULT_HTML));
@@ -84,7 +84,7 @@ export default function Editor({ showToast, onTemplateChange }) {
         showToast('Template saved');
       }
       setShowSave(false);
-      if (onTemplateChange) onTemplateChange();
+      // Template changed
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
@@ -122,7 +122,7 @@ export default function Editor({ showToast, onTemplateChange }) {
         setTemplateName('');
       }
       showToast('Template deleted');
-      if (onTemplateChange) onTemplateChange();
+      // Template changed
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -288,7 +288,7 @@ export default function Editor({ showToast, onTemplateChange }) {
                     </button>
                   </div>
                   <div className="card-details">
-                    {JSON.parse(tpl.variables).map(v => (
+                    {((() => { try { return JSON.parse(tpl.variables || '[]'); } catch { return []; } })()).map(v => (
                       <code key={v}>{`{{${v}}}`}</code>
                     ))}
                   </div>

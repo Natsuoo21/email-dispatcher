@@ -3,7 +3,7 @@ import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { recipientApi } from '../api';
 
-export default function Recipients({ showToast, onListChange }) {
+export default function Recipients({ showToast }) {
   const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([]);
   const [emailColumn, setEmailColumn] = useState(null);
@@ -136,7 +136,7 @@ export default function Recipients({ showToast, onListChange }) {
       setCurrentListId(created.id);
       showToast(`List saved: ${selectedRows.length} recipients`);
       setShowSave(false);
-      if (onListChange) onListChange();
+      // List changed
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
@@ -186,7 +186,7 @@ export default function Recipients({ showToast, onListChange }) {
         setListName('');
       }
       showToast('List deleted');
-      if (onListChange) onListChange();
+      // List changed
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -383,14 +383,14 @@ export default function Recipients({ showToast, onListChange }) {
                   <div className="card-header">
                     <div>
                       <div className="card-title">{l.name}</div>
-                      <div className="card-subtitle">{l.row_count} recipients — {JSON.parse(l.columns).length} columns</div>
+                      <div className="card-subtitle">{l.row_count} recipients — {(() => { try { return JSON.parse(l.columns || '[]').length; } catch { return 0; } })()} columns</div>
                     </div>
                     <button className="btn btn-sm btn-danger" onClick={e => { e.stopPropagation(); handleDeleteList(l.id, l.name); }}>
                       Delete
                     </button>
                   </div>
                   <div className="card-details">
-                    {JSON.parse(l.columns).map(c => (
+                    {((() => { try { return JSON.parse(l.columns || '[]'); } catch { return []; } })()).map(c => (
                       <code key={c}>{c}</code>
                     ))}
                   </div>

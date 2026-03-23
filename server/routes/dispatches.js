@@ -1,7 +1,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
-const { createTransporter, runDispatch } = require('../mailer');
+const { createTransporter, renderTemplate } = require('../mailer');
 const router = express.Router();
 
 // In-memory map of active dispatches for SSE
@@ -81,14 +81,22 @@ router.post('/', (req, res) => {
       insertDispatch.run(
         dispatchId, name.trim(), template_id, smtp_account_id, subject,
         vMap, scheduled_at ? 'scheduled' : 'sending',
-        scheduled_at || null, recipients.length
+        scheduled_at || null, 0 // placeholder, updated below
       );
 
+      let actualCount = 0;
       for (const recipient of recipients) {
         const email = recipient.email;
         if (!email) continue;
         insertLog.run(uuidv4(), dispatchId, email, JSON.stringify(recipient), smtp_account_id);
+        actualCount++;
       }
+
+      // Update total_recipients to the actual count of inserted logs
+      db.prepare('UPDATE dispatches SET total_recipients = ? WHERE id = ?').run(actualCount, dispatchId);
+
+      // Store defaults for scheduled dispatches
+      db.prepare('UPDATE dispatches SET defaults = ? WHERE id = ?').run(defs, dispatchId);
     });
 
     transaction();
@@ -134,7 +142,6 @@ function startDispatch(dispatchId, template, account, variableMapStr, defaultsSt
     const DELAY_MS = 1000;
     const variableMap = JSON.parse(variableMapStr);
     const defaults = JSON.parse(defaultsStr);
-    const { renderTemplate } = require('../mailer');
 
     db.prepare("UPDATE dispatches SET started_at = datetime('now') WHERE id = ?").run(dispatchId);
 
@@ -306,7 +313,7 @@ router.post('/:id/retry', (req, res) => {
     const account = db.prepare('SELECT * FROM smtp_accounts WHERE id = ?').get(dispatch.smtp_account_id);
 
     if (template && account) {
-      startDispatch(req.params.id, template, account, dispatch.variable_map, '{}');
+      startDispatch(req.params.id, template, account, dispatch.variable_map, dispatch.defaults || '{}');
     }
 
     res.json({ message: `Retrying ${failedLogs.length} failed emails` });
@@ -375,8 +382,10 @@ router.delete('/:id', (req, res) => {
       return res.status(409).json({ error: 'Cannot delete a dispatch that is currently sending' });
     }
 
-    db.prepare('DELETE FROM dispatch_logs WHERE dispatch_id = ?').run(req.params.id);
-    db.prepare('DELETE FROM dispatches WHERE id = ?').run(req.params.id);
+    db.transaction(() => {
+      db.prepare('DELETE FROM dispatch_logs WHERE dispatch_id = ?').run(req.params.id);
+      db.prepare('DELETE FROM dispatches WHERE id = ?').run(req.params.id);
+    })();
     res.json({ message: 'Dispatch deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { templateApi, recipientApi, smtpApi, dispatchApi } from '../api';
 
 function detectVariables(text) {
@@ -83,8 +83,9 @@ export default function Compose({ showToast }) {
 
   // When template is selected, extract variables and set subject
   function handleTemplateSelect(tplId) {
-    const tpl = templates.find(t => t.id === tplId);
-    if (!tpl) { setSelectedTemplate(null); setVariables([]); return; }
+    if (!tplId) { setSelectedTemplate(null); setVariables([]); setVariableMap({}); return; }
+    const tpl = templates.find(t => String(t.id) === String(tplId));
+    if (!tpl) { setSelectedTemplate(null); setVariables([]); setVariableMap({}); return; }
     setSelectedTemplate(tpl);
     setSubject(tpl.subject);
     const vars = [...new Set([
@@ -92,13 +93,13 @@ export default function Compose({ showToast }) {
       ...detectVariables(tpl.subject),
     ])];
     setVariables(vars);
-    // Auto-map variables to matching column names
-    const autoMap = {};
+    // Auto-map variables to matching column names (reset stale mappings)
+    const newMap = {};
     for (const v of vars) {
       const match = columns.find(c => c.toLowerCase() === v.toLowerCase());
-      if (match) autoMap[v] = match;
+      newMap[v] = match || '';
     }
-    setVariableMap(prev => ({ ...autoMap, ...prev }));
+    setVariableMap(newMap);
   }
 
   // When list is selected, load its rows
@@ -111,13 +112,13 @@ export default function Compose({ showToast }) {
       setSelectedList(full);
       setColumns(cols);
       setRecipients(rows);
-      // Re-automap variables with new columns
-      const autoMap = {};
+      // Re-automap variables with new columns (reset stale mappings)
+      const newMap = {};
       for (const v of variables) {
         const match = cols.find(c => c.toLowerCase() === v.toLowerCase());
-        if (match) autoMap[v] = match;
+        newMap[v] = match || '';
       }
-      setVariableMap(prev => ({ ...autoMap, ...prev }));
+      setVariableMap(newMap);
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -141,7 +142,7 @@ export default function Compose({ showToast }) {
   const emailCol = columns.find(c => c.toLowerCase() === 'email');
 
   // Validation
-  const canSend = selectedTemplate && recipients.length > 0 && selectedAccount && dispatchName.trim() && subject.trim() && (emailCol || !columns.length);
+  const canSend = selectedTemplate && recipients.length > 0 && selectedAccount && dispatchName.trim() && subject.trim() && emailCol;
 
   // Start dispatch
   async function handleSend() {
@@ -202,6 +203,8 @@ export default function Compose({ showToast }) {
         es.close();
         eventSourceRef.current = null;
         setSending(false);
+        setProgress(prev => prev ? { ...prev, status: 'failed' } : null);
+        showToast('Lost connection to server during dispatch', 'error');
       };
     } catch (err) {
       showToast(err.message, 'error');
@@ -220,7 +223,8 @@ export default function Compose({ showToast }) {
 
   // If dispatch is in progress or done, show progress view
   if (progress) {
-    const pct = progress.total > 0 ? Math.round((progress.sent || 0) / progress.total * 100) : 0;
+    const sentSoFar = progress.sent ?? progress.sent_count ?? 0;
+    const pct = progress.total > 0 ? Math.round(sentSoFar / progress.total * 100) : 0;
     const isDone = progress.status === 'done' || progress.status === 'failed';
 
     return (
@@ -236,7 +240,7 @@ export default function Compose({ showToast }) {
             <div className="progress-bar" style={{ width: `${pct}%` }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontSize: 14 }}>
-            <span>{progress.sent || 0} of {progress.total} emails</span>
+            <span>{sentSoFar} of {progress.total} emails</span>
             <span style={{ fontWeight: 600 }}>{pct}%</span>
           </div>
 
@@ -371,7 +375,7 @@ export default function Compose({ showToast }) {
           <select
             className="form-input"
             value={selectedAccount?.id || ''}
-            onChange={e => setSelectedAccount(accounts.find(a => a.id === e.target.value))}
+            onChange={e => setSelectedAccount(accounts.find(a => String(a.id) === e.target.value))}
           >
             <option value="">Choose an account...</option>
             {accounts.map(a => (

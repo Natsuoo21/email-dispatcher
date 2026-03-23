@@ -15,7 +15,8 @@ function detectProvider(host) {
 
 function timeAgo(isoStr) {
   if (!isoStr) return null;
-  const diff = Date.now() - new Date(isoStr + 'Z').getTime();
+  const dateStr = isoStr.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(isoStr) ? isoStr : isoStr + 'Z';
+  const diff = Date.now() - new Date(dateStr).getTime();
   if (diff < 60000) return 'just now';
   if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
@@ -123,7 +124,8 @@ export default function Settings({ showToast }) {
           {accounts.map(acc => {
             const provider = detectProvider(acc.host);
             const ago = timeAgo(acc.last_test_at);
-            const isStale = acc.last_test_at && (Date.now() - new Date(acc.last_test_at + 'Z').getTime()) > SEVEN_DAYS;
+            const testDateStr = acc.last_test_at && (acc.last_test_at.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(acc.last_test_at) ? acc.last_test_at : acc.last_test_at + 'Z');
+            const isStale = testDateStr && (Date.now() - new Date(testDateStr).getTime()) > SEVEN_DAYS;
 
             return (
               <div key={acc.id} className="card">

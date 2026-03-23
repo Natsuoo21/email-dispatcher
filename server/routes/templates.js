@@ -38,7 +38,7 @@ router.post('/', (req, res) => {
     }
 
     const id = uuidv4();
-    const variables = JSON.stringify(detectVariables(html_content));
+    const variables = JSON.stringify(detectVariables(html_content + ' ' + subject));
 
     db.prepare(
       'INSERT INTO templates (id, name, subject, html_content, variables) VALUES (?, ?, ?, ?, ?)'
@@ -62,7 +62,7 @@ router.put('/:id', (req, res) => {
       return res.status(400).json({ error: 'name, subject, and html_content are required' });
     }
 
-    const variables = JSON.stringify(detectVariables(html_content));
+    const variables = JSON.stringify(detectVariables(html_content + ' ' + subject));
 
     db.prepare(
       `UPDATE templates SET name = ?, subject = ?, html_content = ?, variables = ?, updated_at = datetime('now') WHERE id = ?`
